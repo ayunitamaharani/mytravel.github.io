@@ -39,5 +39,4 @@ Before running this project, ensure you have installed:
 - [XAMPP](https://www.apachefriends.org/) (PHP 8.0+ & MySQL)
 - Modern Web Browser (Chrome, Firefox, Edge)
 - Code Editor (VS Code, Sublime Text, Notepad++ etc)
-   git clone https://github.com/yourusername/traveltix.git
-   cd traveltix
+  
