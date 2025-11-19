@@ -1,0 +1,203 @@
+<?php
+date_default_timezone_set('Asia/Jakarta');
+
+$conn = new mysqli("localhost", "root", "", "travel");
+if ($conn->connect_error) {
+    die("Koneksi gagal: " . $conn->connect_error);
+}
+
+
+$from = $_POST['from'];
+$to = $_POST['to'];
+$date = $_POST['date'];
+$passengers = $_POST['passengers'];
+
+
+$selected_date = new DateTime($date);
+$today = new DateTime();
+$today->setTime(0, 0, 0); 
+
+if ($selected_date < $today) {
+    die("<script>alert('Tidak bisa memilih tanggal yang sudah lewat!'); window.history.back();</script>");
+}
+
+
+$today_date = date('Y-m-d');
+$current_time = date('H:i:s');
+echo "<!-- DEBUG: Today = $today_date, Current Time = $current_time -->";
+
+if ($date == $today_date) {
+   
+    $sql = "SELECT 
+                r.id_rute,
+                k1.nama_kota as kota_asal,
+                k2.nama_kota as kota_tujuan, 
+                r.jam_berangkat,
+                r.harga
+            FROM rute_travel r
+            JOIN kota k1 ON r.kota_asal_id = k1.id_kota
+            JOIN kota k2 ON r.kota_tujuan_id = k2.id_kota
+            WHERE k1.nama_kota = '$from' 
+            AND k2.nama_kota = '$to'
+            AND r.jam_berangkat > '$current_time'
+            ORDER BY r.jam_berangkat";
+} else {
+    $sql = "SELECT 
+                r.id_rute,
+                k1.nama_kota as kota_asal,
+                k2.nama_kota as kota_tujuan, 
+                r.jam_berangkat,
+                r.harga
+            FROM rute_travel r
+            JOIN kota k1 ON r.kota_asal_id = k1.id_kota
+            JOIN kota k2 ON r.kota_tujuan_id = k2.id_kota
+            WHERE k1.nama_kota = '$from' 
+            AND k2.nama_kota = '$to'
+            ORDER BY r.jam_berangkat";
+}
+
+$result = $conn->query($sql);
+?>
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jadwal Tersedia</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      background: #f3f6fc;
+      font-family: 'Poppins', sans-serif;
+      padding: 40px;
+      color: #333;
+    }
+
+    h2 {
+      text-align: center;
+      color: #23438c;
+      font-size: 26px;
+      margin-bottom: 5px;
+    }
+
+    p {
+      text-align: center;
+      font-size: 15px;
+      color: #555;
+      margin-bottom: 40px;
+    }
+
+    .card-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      width: 90%;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 15px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .route {
+      font-size: 18px;
+      font-weight: 600;
+      color: #23438c;
+      margin-bottom: 5px;
+    }
+
+    .time {
+      font-size: 15px;
+      color: #666;
+      margin-bottom: 15px;
+    }
+
+    .price {
+      font-size: 18px;
+      color: #2e6b2e;
+      font-weight: 600;
+      margin-bottom: 15px;
+    }
+
+    .book-btn {
+      display: inline-block;
+      text-decoration: none;
+      background: #23438c;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      transition: background 0.3s ease;
+    }
+
+    .book-btn:hover {
+      background: #1b2f5f;
+    }
+
+    a.back {
+      display: block;
+      text-align: center;
+      margin-top: 40px;
+      color: #23438c;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .info-note {
+      text-align: center;
+      background: #fff3cd;
+      border: 1px solid #ffeaa7;
+      border-radius: 8px;
+      padding: 10px;
+      margin: 0 auto 20px;
+      max-width: 600px;
+      color: #856404;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Jadwal Travel dari <?= htmlspecialchars($from) ?> ke <?= htmlspecialchars($to) ?></h2>
+<p>Tanggal: <?= htmlspecialchars($date) ?> &nbsp; | &nbsp; Penumpang: <?= htmlspecialchars($passengers) ?></p>
+
+<?php
+
+if ($date == $today_date) {
+    echo "<div class='info-note'>💡 Menampilkan jadwal yang belum berangkat (setelah jam $current_time)</div>";
+}
+?>
+
+<div class="card-container">
+<?php
+if ($result->num_rows > 0) {
+  while ($row = $result->fetch_assoc()) {
+    echo "
+    <div class='card'>
+      <div class='route'>{$row['kota_asal']} → {$row['kota_tujuan']}</div>
+      <div class='time'>Jam Berangkat: {$row['jam_berangkat']}</div>
+      <div class='price'>Rp " . number_format($row['harga'], 0, ',', '.') . "</div>
+      <a href='pesan.php?id={$row['id_rute']}&date=$date&passengers=$passengers' class='book-btn'>Pesan Sekarang</a>
+    </div>
+    ";
+  }
+} else {
+  echo "<p style='text-align:center;'>Tidak ada jadwal tersedia untuk rute ini 😢</p>";
+}
+?>
+</div>
+
+<a href="index.php" class="back">← Kembali ke Beranda</a>
+
+</body>
+</html>
+
+<?php $conn->close(); ?>
